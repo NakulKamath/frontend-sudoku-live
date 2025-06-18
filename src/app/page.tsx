@@ -1,73 +1,92 @@
-"use client";
+"use client"
 
-import React, { useEffect, useState } from "react";
-import { useSocket } from "./components/Socket";
-import { useRouter } from "next/navigation";
+import { Input } from "@/app/components/ui/input"
+import { Label } from "@/app/components/ui/label"
+import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group"
+import { Button } from "@/app/components/ui/button"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useSocket } from "./components/SocketContext"
+import { toast } from "sonner"
 
-type Record = {
-  key: string;
-  value: string;
-};
+export default function StartGameDialog() {
+  const [difficulty, setDifficulty] = useState("")
+  const [input, setInput] = useState("")
+  const [loadingText, setLoadingText] = useState("Start game")
+  const { socket } = useSocket()
+  const router = useRouter()
 
-export default function KafkaLiveList() {
-  const [records, setRecords] = useState<Record[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const router = useRouter();
+  const id = socket?.id
 
-  const { socket } = useSocket();
-
-  useEffect(() => {
-    if (!socket) return;
-    socket?.on("kafka-message", (msg: { key: string; value: string }) => {
-      setRecords((prev) => [
-        ...prev,
-        { key: msg.key, value: msg.value }
-      ]);
-    });
-  }, [socket]);
-
-  const handleAddMessage = () => {
-    if (inputValue.trim() === "") return;
-    if (!socket) {
-      console.error("Socket is not connected");
-      return;
+  const onSubmitHandler = async () => {
+    if (!input || !difficulty) {
+      return
     }
-    const newRecord = { key: socket?.id ?? "unknown", value: inputValue.trim() };
-    socket.emit("send-message", { ...newRecord, group: "test-topic" });
-    setInputValue("");
-  };
+    setLoadingText("Creating game...")
+    localStorage.setItem("name", input)
+
+    try {
+      if (!socket?.id) {
+        toast.error("Could not connect to the server")
+        setLoadingText("Start game")
+        return
+      }
+      router.push(`/room/${id}?difficulty=${difficulty}`)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const isDisabled = !input || !difficulty || loadingText === "Creating game..."
 
   return (
-    <div>
-      <h1>Live Kafka Records</h1>
-      <ul>
-        {records.map((rec, idx) => (
-          <li key={idx}>
-            <strong>{rec.key}:</strong> {rec.value}
-          </li>
-        ))}
-        <div style={{ marginTop: "8px" }}>
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Enter message"
-          />
-          <button onClick={() => handleAddMessage()}>Add</button>
+    <div className="flex flex-col gap-4 md:px-[30dvw] py-[10dvh] max-h-[80dvh]">
+      <h1 className="text-6xl font-bold text-center">Sudoku-Live</h1>
+      <h3 className="text-2xl font-bold text-center mb-15">Start a new game</h3>
+      <div className="grid gap-6">
+        <Label>Name</Label>
+        <Input
+          placeholder="Enter your name"
+          minLength={1}
+          id="name"
+          type="text"
+          required
+          value={input}
+          className="peer [&:user-invalid:not(:focus)]:border-red-500"
+          onChange={(e) => setInput(e.target.value)}
+        />
+        <p className="hidden text-red-500 text-sm peer-[&:user-invalid:not(:focus)]:block">
+          This field is required
+        </p>
+      </div>
+      <div className="grid gap-6">
+        <div className="flex items-center">
+          <Label>Difficulty</Label>
         </div>
-      </ul>
-      <button
-        onClick={() => {
-          if (!socket) {
-            console.error("Socket is not connected");
-            return;
-          }
-            router.push(`/room/${socket.id}`);
-        }}
-        style={{ marginTop: "16px" }}
-      >
-        Go to My Room
-      </button>
+        <ToggleGroup
+          type="single"
+          className="w-full flex-col items-start gap-4"
+          onValueChange={(type : string) => setDifficulty(type)}
+        >
+          {['easy', 'medium', 'hard', 'expert'].map((difficulty) => (
+            <ToggleGroupItem
+              key={difficulty}
+              value={difficulty}
+              aria-label={`Toggle ${difficulty}`}
+              className="w-full bg-primary text-white p-2 rounded-md hover:bg-primary/50 hover:text-white transition-colors duration-400 data-[state=on]:bg-primary/20"
+            >
+              {difficulty}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+      <Button
+        variant={"destructive"}
+        className="w-full cursor-pointer p-6 mt-10"
+        disabled={isDisabled}
+        onClick={onSubmitHandler}>
+          {loadingText}
+      </Button>
     </div>
-  );
+  )
 }
