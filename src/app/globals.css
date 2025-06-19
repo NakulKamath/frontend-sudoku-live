@@ -120,3 +120,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Beautiful custom scrollbars */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2e3e5a;
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2e3e5a;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #2e3e5a transparent;
+}
