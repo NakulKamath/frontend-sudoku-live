@@ -18,4 +18,5 @@ export interface BoardCellProps {
 export interface BoardProps {
   board: BoardCellType[];
   setBoard: React.Dispatch<React.SetStateAction<BoardCellType[]>>;
+  mistakes: number[];
 }

@@ -9,7 +9,7 @@ import { useParams } from "next/navigation";
 import NameDialog from "@/app/components/NameDialog";
 import { toast } from "sonner";
 
-const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
+const Board: React.FC<BoardProps> = ({ board, setBoard, mistakes }) => {
   const [position, setPosition] = React.useState<number | null>(null);
   const [notes, setNotes] = React.useState<boolean>(false);
   const [selected, setSelected] = React.useState<number | null>(null);
@@ -31,6 +31,10 @@ const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
 
   const handleMove = (num : number) => {
     if (position === null) return;
+    if (board[position].correct) {
+      toast.info("Trying to lose? No sabotage allowed!");
+      return;
+    }
     if (!notes) {
       setBoard((prevBoard) => {
         const newBoard = [...prevBoard];
@@ -112,6 +116,9 @@ const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
             >
               <Delete className="h-10 w-10" />
             </Button>
+            <div className="flex items-center justify-center bg-[#1a2233] text-white rounded-md p-2 min-w-[64px]">
+              Mistakes: {mistakes[0]} / {mistakes[1]}
+            </div>
             <Button
               className={`bg-[#1a2233] text-white rounded-md p-2 focus:outline-none ${notes ? "bg-blue-500" : ""} transition-colors duration-300`}
               onClick={toggleNotes}

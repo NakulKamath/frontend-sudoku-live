@@ -18,6 +18,7 @@ export default function RoomPage() {
   const searchParams = useSearchParams();
   const difficulty = searchParams.get("difficulty");
   const [board, setBoard] = useState<BoardCellType[]>([]);
+  const [mistakes, setMistakes] = useState<number[]>([]);
 
   useEffect(() => {
     console.log("Room ID:", roomId);
@@ -29,6 +30,26 @@ export default function RoomPage() {
         toast.error("This game session has ended or does not exist.");
       } else {
         socket.emit("join-room", { roomId, difficulty });
+      }
+    });
+
+    socket.on("win", () => {
+      toast.success("Congratulations! You solved the Sudoku puzzle!", {description: "You will be redirected in 5 seconds."});
+      setTimeout(() => {
+        router.push("/");
+      }, 5000);
+      if (socket.id === roomId) {
+        socket.emit("reset-room", { roomId });
+      }
+    });
+
+    socket.on("lose", () => {
+      toast.error("You lost the game. Better luck next time!", {description: "You will be redirected in 5 seconds."});
+      setTimeout(() => {
+        router.push("/");
+      }, 5000);
+      if (socket.id === roomId) {
+        socket.emit("reset-room", { roomId });
       }
     });
 
@@ -59,6 +80,13 @@ export default function RoomPage() {
           if (cell) {
             cell.value = parseInt(value);
             cell.correct = correct === "1";
+          }
+          if (correct !== "1") {
+            setMistakes(prevMistakes => {
+              const newMistakes = [...prevMistakes];
+              newMistakes[0] = (newMistakes[0] || 0) + 1;
+              return newMistakes;
+            });
           }
           return newBoard;
         });
@@ -117,6 +145,9 @@ export default function RoomPage() {
     socket.on("board-state", (boardState: BoardCellType[]) => {
       setBoard(boardState);
     });
+    socket.on("mistakes", (mistakes: number[]) => {
+      setMistakes(mistakes);
+    });
     return () => {
       socket.off("kafka-message");
     };
@@ -134,7 +165,7 @@ export default function RoomPage() {
   return (
     <>
     <div className="flex flex-col lg:flex-row max-w-[100dvw] h-full flex-col items-center justify-center border-4 p-[1dvh] bg-[#020817] border-[#2e3e5a] rounded-3xl">
-      <Board board={board} setBoard={setBoard} />
+      <Board board={board} setBoard={setBoard} mistakes={mistakes}/>
       <div className="w-full lg:max-w-md h-[35dvh] md:h-[93dvh] rounded-lg border-4 border-[#2e3e5a]">
         <div className="flex flex-col h-full">
           <div

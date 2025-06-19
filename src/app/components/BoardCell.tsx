@@ -28,14 +28,15 @@ export const BoardCell: React.FC<BoardCellProps> = ({ cell, index, position, han
   return (
     <div
       className={`w-full h-full flex items-center justify-center h-10 w-10 text-2xl font-bold cursor-pointer
-      bg-black rounded-lg ${
+      bg-black rounded-lg 
+      ${
+        ((cell.users?.length || 0) > 0) && position !== index && "ring-2 ring-orange-200 border-blue-500"
+      }
+      ${
         position === index ? "ring-2 ring-blue-500 border-blue-500" : ""
       }
       ${
-        ((cell.users?.length || 0) > 0) && "ring-2 ring-orange-200 border-blue-500"
-      }
-      ${
-        selected != null && cell.value === selected && position != index ? " text-white bg-blue-200/20 " : ""
+        selected != null && cell.value === selected && position != index ? " text-white bg-blue-900 " : ""
       }`}
       onClick={handleClick}
       title={cell.users && cell.users.length > 0 ? cell.users.join(", ") : undefined}
