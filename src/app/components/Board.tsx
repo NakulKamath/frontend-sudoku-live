@@ -1,11 +1,13 @@
 'use client';
-import React, { useEffect } from "react";
+import React from "react";
 import { BoardCell } from "@/app/components/BoardCell";
 import { BoardProps } from "./types";
 import { Button } from "@/app/components/ui/button";
-import { Delete, NotebookPen } from "lucide-react";
+import { Delete, Link, NotebookPen } from "lucide-react";
 import { useSocket } from "./SocketContext";
 import { useParams } from "next/navigation";
+import NameDialog from "@/app/components/NameDialog";
+import { toast } from "sonner";
 
 const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
   const [position, setPosition] = React.useState<number | null>(null);
@@ -19,14 +21,13 @@ const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
     setNotes(!notes);
   };
 
-  useEffect(() => {
-    if (position === null || !socket) return;
-    socket?.emit("send-event", {
-      roomId,
-      event: { type: 'movePosition', index: position },
-      name: localStorage.getItem("name") || "Anonymous"
-    });
-  }, [position, socket, roomId]);
+  const handleMovePos = (newPos: number | null) => {
+    console.log("Moving to position:", newPos);
+    if (position === newPos) return;
+    socket?.emit("send-event", { roomId, event : {type : 'movePosition', prev : position, index : newPos}, name : localStorage.getItem("name") || "Anonymous" });
+    setPosition(newPos);
+    setSelected(null);
+  };
 
   const handleMove = (num : number) => {
     if (position === null) return;
@@ -36,26 +37,28 @@ const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
         const cell = newBoard[position];
         if (cell.mutable) {
           cell.value = num;
+          socket?.emit("send-event", { roomId, event : {type : 'updateCell', index : position, value : num}, name : localStorage.getItem("name") || "Anonymous" });
         }
         return newBoard;
       });
+      setSelected(num);
     } else {
       setBoard((prevBoard) => {
         const newBoard = [...prevBoard];
         const cell = newBoard[position];
         if (cell.mutable && cell.notes) {
-          if (cell.notes.get(num)) {
-            cell.notes.set(num, false);
+          if (cell.notes.includes(num)) {
+            cell.notes = cell.notes.filter((n: number) => n !== num);
             socket?.emit("send-event", { roomId, event : {type : 'removeNote', index : position, note : num}, name : localStorage.getItem("name") || "Anonymous" });
           } else {
-            cell.notes.set(num, true);
+            cell.notes = [...cell.notes, num];
             socket?.emit("send-event", { roomId, event : {type : 'addNote', index : position, note : num}, name : localStorage.getItem("name") || "Anonymous" });
           }
       }
         return newBoard;
       });
+      setSelected(null);
     }
-    setSelected(null);
   }
 
   const handleDelete = () => {
@@ -65,7 +68,8 @@ const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
       const cell = newBoard[position];
       if (cell.mutable) {
         cell.value = null;
-        cell.notes = new Map<number, boolean>(Array.from({ length: 9 }, (_, i) => [i + 1, false]));
+        cell.notes = [];
+        socket?.emit("send-event", { roomId, event : {type : 'clear', index : position}, name : localStorage.getItem("name") || "Anonymous" });
       }
       return newBoard;
     });
@@ -73,9 +77,9 @@ const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
   };
 
   return (
-    <>
-    <div className="grid grid-cols-9 p-2 bg-[#020817] rounded-t-lg mx-auto border-4 border-b-0 border-[#2e3e5a] aspect-square md:max-w-[60dvh]">
-      {(board ?? []).map((cell, idx) => (
+    <div className="flex flex-col items-center justify-center md:h-fit md:w-full gap-2">
+      <div className="grid grid-cols-9 p-2 bg-[#020817] rounded-lg mx-auto border-4 border-[#2e3e5a] sm:w-md lg:w-xl ">
+        {(board ?? []).map((cell, idx) => (
         <div
           key={`${Math.floor(idx/9)}-${idx%9}`}
           className={`flex items-center justify-center border border-r-0 border-b-0 p-1 border-[#2e3e5a] aspect-square 
@@ -85,39 +89,53 @@ const Board: React.FC<BoardProps> = ({ board, setBoard }) => {
             ${Math.floor(idx/9) === 8 && "border-b-2 border-b-border-thick "}
           `}
         >
-          <BoardCell cell={cell} index={idx} position={position} setPosition={setPosition} selected={selected} setSelected={setSelected}/>
+          <BoardCell cell={cell} index={idx} position={position} handleMovePos={handleMovePos} selected={selected} setSelected={setSelected}/>
         </div>
-      ))}
-    </div>
-    <div className="flex flex-col md:max-w-[60dvh] mx-auto bg-[#020817] border-4 border-t-0 border-[#2e3e5a] rounded-b-lg flex items-center justify-between px-2 pb-2">
-        <div className="grid grid-cols-9 gap-2 w-full h-full">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-            <Button
-              key={num}
-              className="flex items-center justify-center bg-[#1a2233] text-white rounded-md p-2 aspect-square w-full h-full hover:bg-[#2e3e5a] focus:outline-none"
-              onClick={() => {handleMove(num)}}
-              variant={selected === num ? "secondary" : "default"}
+        ))}
+        <div className="flex flex-col items-center justify-center col-span-9 p-2">
+          <div className="grid grid-cols-9 gap-2 w-full h-full">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <Button
+                key={num}
+                className="flex items-center justify-center bg-[#1a2233] text-white rounded-md p-2 aspect-square w-full h-full hover:bg-[#2e3e5a] focus:outline-none"
+                onClick={() => {handleMove(num)}}
+                variant={selected === num ? "secondary" : "default"}
+              >
+                {num}
+              </Button>
+            ))}
+          </div>
+          <div className="flex justify-between gap-2 w-full mt-2">
+            <Button 
+              className="bg-[#1a2233] text-white rounded-md p-2 hover:bg-[#2e3e5a] focus:outline-none"
+              onClick={handleDelete}
             >
-              {num}
+              <Delete className="h-10 w-10" />
             </Button>
-          ))}
+            <Button
+              className={`bg-[#1a2233] text-white rounded-md p-2 focus:outline-none ${notes ? "bg-blue-500" : ""} transition-colors duration-300`}
+              onClick={toggleNotes}
+            >
+              <NotebookPen className="h-10 w-10" />
+            </Button>
+          </div>
         </div>
-        <div className="flex justify-between gap-2 w-full mt-2">
-          <Button 
-            className="bg-[#1a2233] text-white rounded-md p-2 hover:bg-[#2e3e5a] focus:outline-none"
-            onClick={handleDelete}
-          >
-            <Delete className="h-10 w-10" />
-          </Button>
-          <Button
-            className="bg-[#1a2233] text-white rounded-md p-2 hover:bg-[#2e3e5a] focus:outline-none"
-            onClick={toggleNotes}
-          >
-            <NotebookPen className="h-10 w-10" />
-          </Button>
-        </div>
+      </div>
+      <div className="flex flex-row justify-between mb-2">
+        <NameDialog handleMovePos={handleMovePos}/>
+        <Button
+          className="ml-4 bg-[#1a2233] text-white rounded-md p-2 hover:bg-[#2e3e5a] focus:outline-none"
+          onClick={() => {
+            const url = window.location.origin + window.location.pathname;
+            navigator.clipboard.writeText(url);
+            toast.success("Link copied to clipboard!");
+          }}
+        >
+          <Link className="h-10 w-10" />
+          Copy Link
+        </Button>
+      </div>
     </div>
-    </>
   );
 };
 
