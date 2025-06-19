@@ -15,7 +15,7 @@ export const SocketProvider = ({children} : {children : ReactNode }) => {
   const [socket, setSocket] = useState<ReturnType<typeof io> | null>(null);
 
   useEffect(() => {
-    const newSocket = io("ws://localhost:3000", {
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL as string, {
       transports: ["websocket"],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
