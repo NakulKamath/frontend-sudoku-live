@@ -81,7 +81,7 @@ const Board: React.FC<BoardProps> = ({ board, setBoard, mistakes }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center md:h-fit md:w-full gap-2">
+    <div className="flex flex-col items-center justify-center sm:h-fit sm:w-full gap-2 h-[75dvh] sm:h-[65dvh]">
       <div className="grid grid-cols-9 p-2 bg-[#020817] rounded-lg mx-auto border-4 border-[#2e3e5a] sm:w-md lg:w-xl ">
         {(board ?? []).map((cell, idx) => (
         <div
