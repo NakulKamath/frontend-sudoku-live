@@ -166,7 +166,7 @@ export default function RoomPage() {
     <>
     <div className="flex flex-col lg:flex-row max-w-[100dvw] h-full flex-col items-center justify-center border-4 p-[1dvh] bg-[#020817] border-[#2e3e5a] rounded-3xl">
       <Board board={board} setBoard={setBoard} mistakes={mistakes}/>
-      <div className="w-full lg:max-w-md h-full md:h-[93dvh] rounded-lg border-4 border-[#2e3e5a]">
+      <div className="w-full lg:max-w-md h-[23dvh] lg:h-[93dvh] rounded-lg border-4 border-[#2e3e5a]">
         <div className="flex flex-col h-full">
           <div
             className="flex-1 overflow-y-auto p-2 space-y-2"
